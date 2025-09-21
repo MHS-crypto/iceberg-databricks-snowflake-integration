@@ -33,3 +33,30 @@ GRANT USAGE ON EXTERNAL VOLUME EXT_VOLUME_ICEBERG to ICEBERG_ROLE;
 GRANT USAGE ON DATABASE ICE_DB TO ROLE ICEBERG_ROLE; 
 GRANT SELECT ON TABLE ICE_DB.PUBLIC.ICEBERG_TAXI_TRIP TO ICEBERG_ROLE;
 
+
+-- For reading databricks iceberg catalog
+CREATE OR REPLACE CATALOG INTEGRATION unity_catalog_int_oauth
+  CATALOG_SOURCE = ICEBERG_REST
+  TABLE_FORMAT = ICEBERG
+  CATALOG_NAMESPACE = 'uc_schema_name'
+  REST_CONFIG = (
+    CATALOG_URI = 'https://<deployment-name>.cloud.databricks.com/api/2.1/unity-catalog/iceberg'
+    CATALOG_NAME = 'uc_catalog_name'
+    ACCESS_DELEGATION_MODE = VENDED_CREDENTIALS
+  )
+  REST_AUTHENTICATION = (
+    TYPE = OAUTH
+    OAUTH_TOKEN_URI = 'https://<deployment-name>.cloud.databricks.com/oidc/v1/token'
+    OAUTH_CLIENT_ID = '<client-id>'
+    OAUTH_CLIENT_SECRET = '<secret>'
+    OAUTH_ALLOWED_SCOPES = ('all-apis', 'sql')
+  )
+  ENABLED = TRUE
+  REFRESH_INTERVAL_SECONDS = '<interval>';
+
+
+CREATE OR REPLACE ICEBERG TABLE ICEBERG_TAXI_TRIP_DATABRICKS
+  CATALOG = 'unity_catalog_int_oauth'
+  CATALOG_TABLE_NAME = 'uc_table_name'
+  AUTO_REFRESH = TRUE;
+
